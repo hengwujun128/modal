@@ -25,7 +25,7 @@ const Plugin = {
     this.componentName = options.componentName || defaultComponentName
 
     /**
-     * Plugin API  向vue实例添加全局对象和方法
+     * Plugin API  向vue实例添加全局对象和方法(同vuex 状态管理)
      */
     Vue.prototype.$modal = {
       _setDynamicContainer(dynamicContainer) {

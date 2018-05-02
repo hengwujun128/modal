@@ -1,13 +1,18 @@
 <template>
   <transition name="overlay-fade">
+    <!-- overlay 判断,当visible为true时候，visibility.overlay is true -->
+    <!-- 通过计算属性设置overlayClass 属性 -->
+    <!--  -->
     <div v-if="visibility.overlay"
         ref="overlay"
         :class="overlayClass"
         :aria-expanded="visible.toString()"
         :data-modal="name">
+      <!-- class -->
       <div :class="backgroundClickClass"
           @mousedown.stop="onBackgroundClick"
           @touchstart.stop="onBackgroundClick">
+
         <div class="v--modal-top-right">
           <slot name="top-right"/>
         </div>
@@ -25,6 +30,7 @@
                     @resize="onModalResize"/>
           </div>
         </transition>
+
       </div>
     </div>
   </transition>
@@ -32,12 +38,15 @@
 <script>
 // 引用plugin
 import Modal from './index'
+// 事件处理程序组件
 import Resizer from './Resizer.vue'
+
 import { inRange } from './util'
-import parseNumber from './parser'
+import parseNumber from './parser' // parser.js 使用export default，因此可以改变名称
 
 export default {
   name: 'VueJsModal',
+  // eighteen property
   props: {
     name: {
       required: true,
@@ -151,17 +160,17 @@ export default {
   data() {
     return {
       visible: false,
-
+      // 初始化不可见
       visibility: {
         modal: false,
         overlay: false
       },
-
+      // 初始化偏移量，当组件draggable为true时候，可以用到
       shift: {
         left: 0,
         top: 0
       },
-
+      // 设置modal 的宽和高
       modal: {
         width: 0,
         widthType: 'px',
@@ -169,7 +178,7 @@ export default {
         heightType: 'px',
         renderedHeight: 0
       },
-
+      //  设置 wondow 对象的宽高
       window: {
         width: 0,
         height: 0
@@ -185,24 +194,31 @@ export default {
      * inside `setTimeout` and `$nextTick`, after the DOM changes.
      * This fixes `$refs.modal` `undefined` bug (fixes #15)
      */
+    // 通过监听 visible 的值来决定显示隐藏
     visible(value) {
+      // show
       if (value) {
         this.visibility.overlay = true
-
+        // show overlay first ,then show modal;this.delay value 0
         setTimeout(() => {
           this.visibility.modal = true
+          // 在 数据驱动导致视图变化之后，dom重新渲染之后再添加事件处理程序
           this.$nextTick(() => {
+            // 添加可以拖拽event handler
             this.addDraggableListeners()
+            // 主要做两件事：1.根据显示状态添加modal容器元素dom监听；2.发射opend（打开之后的回调），closed 事件；
             this.callAfterEvent(true)
           })
         }, this.delay)
       } else {
+        // 如果隐藏，先隐藏modal;再隐藏overlay
         this.visibility.modal = false
 
         setTimeout(() => {
           this.visibility.overlay = false
           this.$nextTick(() => {
             this.removeDraggableListeners()
+            // 主要做两件事：1.根据显示状态添加modal容器元素dom监听；2.发射opend（打开之后的回调），closed 事件；
             this.callAfterEvent(false)
           })
         }, this.delay)
@@ -216,16 +232,24 @@ export default {
    * Sets global listeners
    */
   beforeMount() {
+    // Model come from pulgin，全局的监听，通过bus 设置
+    // 用户通过this.$modal.show() 就会触发此事件
+    // 添加事件监听也是通过 event bus
     Modal.event.$on('toggle', (name, state, params) => {
+      // this.name 用户通过props传入
+      // name 也是用户通过this.$modal.show('name',...)第一个参数;这两个值要相同
       if (name === this.name) {
+        // 在 plugin 中设置
         if (typeof state === 'undefined') {
           state = !this.visible
         }
-
+        // 把用户传入的paramsOrProps 带入
+        // 主要做了两件事：1.添加beforeEvent 事件；2.改变了this.visible 的值，触发了监听
         this.toggle(state, params)
       }
     })
 
+    // 重置 this.window对象的大小，resize 的时候设置；这里也要设置
     window.addEventListener('resize', this.onWindowResize)
     this.onWindowResize()
     /**
@@ -250,6 +274,8 @@ export default {
        * simply stay at its initial height (won't crash).
        * (Provide polyfill to support IE < 11)
        */
+
+      // mutationObserve 判断浏览器是否支持mutationObserve
       const MutationObserver = (function() {
         const prefixes = ['', 'WebKit', 'Moz', 'O', 'Ms']
 
@@ -262,14 +288,15 @@ export default {
         }
         return false
       })()
-
+      // 如果浏览器支持mutationObserve ,就实例化，并赋值给一个响应式属性
+      // 回调函数的参数：mutations 是一个集合
       if (MutationObserver) {
         this.mutationObserver = new MutationObserver(mutations => {
           this.updateRenderedHeight()
         })
       }
     }
-
+    // 添 ESC 的事件处理
     if (this.clickToClose) {
       window.addEventListener('keyup', this.onEscapeKeyUp)
     }
@@ -287,8 +314,10 @@ export default {
   computed: {
     /**
      * Returns true if height is set to "auto"
+     * 高度是自定义
      */
     isAutoHeight() {
+      //
       return this.modal.heightType === 'auto'
     },
     /**
@@ -393,6 +422,8 @@ export default {
      * every time "beforeOpen" is triggered
      */
     setInitialSize() {
+      // 对象结构赋值,获取this.modal对象；
+      // 并对modal 对象进行初始化设置,初始化宽高
       const { modal } = this
       const width = parseNumber(this.width)
       const height = parseNumber(this.height)
@@ -408,7 +439,7 @@ export default {
         this.$modal.hide(this.name)
       }
     },
-
+    // 获取窗口大小
     onWindowResize() {
       this.window.width = window.innerWidth
       this.window.height = window.innerHeight
@@ -416,6 +447,8 @@ export default {
 
     /**
      * Generates event object
+     *
+     *
      */
     genEventObject(params) {
       const eventData = {
@@ -424,7 +457,7 @@ export default {
         canceled: false,
         ref: this.$refs.modal
       }
-
+      // 对象的合并
       return Object.assign(eventData, params || {})
     },
     /**
@@ -443,31 +476,39 @@ export default {
       this.$emit('resize', resizeEvent)
     },
     /**
+     *1.
+     *2.再此处添加before-event handler,根据当前组件的显示隐藏状态添加
+     *
      * Event handler which is triggered on $modal.show and $modal.hide
      * BeforeEvents: ('before-close' and 'before-open') are `$emit`ed here,
      * but AfterEvents ('opened' and 'closed') are moved to `watch.visible`.
      */
     toggle(state, params) {
+      // 通过对象解构赋值，取出对象属性赋值给变量只做判断
       const { reset, scrollable, visible } = this
+      // 如果当前的modal 组件已经处于显示和隐藏状态，就不需要再设置
       if (visible === state) return
+      //
       const beforeEventName = visible ? 'before-close' : 'before-open'
-
+      // before-open 所做的事件，visible 为false，当前model 为隐藏状态
       if (beforeEventName === 'before-open') {
         /**
          * Need to unfocus previously focused element, otherwise
          * all keypress events (ESC press, for example) will trigger on that element.
          */
+        // 移除焦点事件
         if (document.activeElement) {
           document.activeElement.blur()
         }
-
+        // 重置初始化分为两种情况：未打开过，rest 为false；如果已经打开过，此时在隐藏，rest 为真
+        // Resets position and size before showing modal
         if (reset) {
           this.setInitialSize()
 
           this.shift.left = 0
           this.shift.top = 0
         }
-
+        //
         if (scrollable) {
           document
             .getElementsByTagName('html')[0]
@@ -475,6 +516,7 @@ export default {
           document.body.classList.add('v--modal-block-scroll')
         }
       } else {
+        // 用户显示，show 要做的事情
         if (scrollable) {
           document
             .getElementsByTagName('html')[0]
@@ -488,22 +530,26 @@ export default {
       const stop = () => {
         stopEventExecution = true
       }
-
+      //  this.genEventObject()返回一个object 对象
       const beforeEvent = this.genEventObject({ stop, state, params })
-
+      // 发射事件
       this.$emit(beforeEventName, beforeEvent)
-
+      // 设置 显示隐藏状态，把state 赋值给响应式属性,此时会触发监听
       if (!stopEventExecution) {
         this.visible = state
         // after events are called in `watch.visible`
       }
     },
 
+    // 获取拖拽的容器元素
     getDraggableElement() {
+      // this.draggable default value is false, 如果是boolean，.v--modal-box 设置为拖拽容器
+      // 只要是boolean，则设置拖拽
       var selector =
         typeof this.draggable !== 'string' ? '.v--modal-box' : this.draggable
 
       if (selector) {
+        // overlay 下的 .v--modal-box 的元素
         const handler = this.$refs.overlay.querySelector(selector)
 
         if (handler) {
@@ -520,11 +566,13 @@ export default {
       }
     },
 
+    // 添加drag event handler,主要是通过鼠标事件来模拟 拖拽事件
     addDraggableListeners() {
+      // 默认不可以拖拽，如果用户设置为true，则可以拖拽
       if (!this.draggable) {
         return
       }
-
+      // 返回拖拽的dom容器元素
       let dragger = this.getDraggableElement()
 
       if (dragger) {
@@ -538,6 +586,7 @@ export default {
             ? event.touches[0]
             : event
         }
+        // modsedown event handlers:
 
         let mousedown = event => {
           let target = event.target
@@ -545,7 +594,7 @@ export default {
           if (target && target.nodeName === 'INPUT') {
             return
           }
-
+          // 通过event 获取相对于 client 的 坐标,在mousedown 获取初始化坐标，并添加mouseMove和mouseup 事件处理程序
           let { clientX, clientY } = getPosition(event)
 
           document.addEventListener('mousemove', mousemove)
@@ -562,6 +611,8 @@ export default {
           //  event.preventDefault()
         }
 
+        // mousemove event handler： 主要是通过event 来获取鼠标坐标，并计算偏移
+        // 这一步的操作应该在mouseUp中处理
         let mousemove = event => {
           let { clientX, clientY } = getPosition(event)
 
@@ -569,7 +620,7 @@ export default {
           this.shift.top = cachedShiftY + clientY - startY
           event.preventDefault()
         }
-
+        // 鼠标放下事件只是 移除 eventHandler
         let mouseup = event => {
           document.removeEventListener('mousemove', mousemove)
           document.removeEventListener('mouseup', mouseup)
@@ -597,12 +648,14 @@ export default {
      * (fixes #15)
      */
     callAfterEvent(state) {
+      // 如果是显示状态，modal 容器内部元素有变化就添加监听;否则就取消监听
       if (state) {
         this.connectObserver()
       } else {
         this.disconnectObserver()
       }
-
+      // state :true/false,当用户this.$modal.show()的时候设置
+      //
       const eventName = state ? 'opened' : 'closed'
       const event = this.genEventObject({ state })
 
@@ -627,6 +680,9 @@ export default {
      */
     connectObserver() {
       if (this.mutationObserver) {
+        // 观察 thsi.$refs.modal 是否变化;
+        // this.mutationObserve 有三个方法:observe(),disconnect(),takeRecords();
+        //{xx}  specifies which DOM mutations should be reported.
         this.mutationObserver.observe(this.$refs.modal, {
           childList: true,
           attributes: true,

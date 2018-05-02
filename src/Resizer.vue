@@ -57,6 +57,7 @@ export default {
     mousemove(event) {
       this.resize(event)
     },
+    // move 事件处理程序
     resize(event) {
       var el = this.$el.parentElement
 

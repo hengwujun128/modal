@@ -25,7 +25,7 @@ const Plugin = {
     this.componentName = options.componentName || defaultComponentName
 
     /**
-     * Plugin API  向vue实例添加全局对象和方法(同vuex 状态管理)
+     * Plugin API  向vue实例添加全局对象和方法(同vuex )
      */
     Vue.prototype.$modal = {
       _setDynamicContainer(dynamicContainer) {
@@ -77,6 +77,9 @@ const Plugin = {
     /**
      * In order to instantiate modals at runtime, (for lazy-loading or decluttering templates), it is possible to create modals dynamically
      * Registration of <ModalsContainer/> component
+     *
+     * 运行时，使用modalsContainer 组件，加入到全局组件
+     *
      */
     if (options.dynamic) {
       Vue.component('modals-container', ModalsContainer)
